@@ -2,19 +2,23 @@ module Day06
 
 open System
 
-let parse (s: string) =
-    let lines =
-        s.Trim().Split "\n"
-        |> Seq.toList
-        |> List.map (fun l -> l.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries) |> Seq.toList)
+let split_ws (s: string) =
+    s.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries) |> Seq.toList
+
+let process_num_rows (rows: list<string>) =
+    rows
+    |> List.map (fun row -> row |> split_ws |> List.map Int64.Parse)
+    |> List.transpose
+
+let parse (process_num_rows: list<string> -> list<list<int64>>) (s: string) =
+    let lines = s.Trim().Split "\n" |> Seq.toList
 
     match lines |> List.rev with
     | [] -> failwith "wtf"
     | symbols :: numbers ->
-        let nums =
-            numbers |> List.map (fun l -> l |> List.map Int64.Parse) |> List.transpose
-
-        List.zip symbols nums
+        let syms = symbols |> split_ws
+        let nums = numbers |> List.rev |> process_num_rows
+        List.zip syms nums
 
 let mul a b = a * b
 
@@ -24,8 +28,10 @@ let apply_op op (nums: list<int64>) =
     | "*" -> nums |> List.fold mul 1
     | x -> failwithf "bad op: %A" x
 
-let part1 (s: string) =
-    s |> parse |> List.map (fun (op, nums) -> apply_op op nums) |> List.sum
+let calc ls =
+    ls |> List.map (fun (op, nums) -> apply_op op nums) |> List.sum
+
+let part1 (s: string) = s |> parse process_num_rows |> calc
 
 let extend len ls =
     let l = ls |> List.length
@@ -43,31 +49,17 @@ let split_empty ls =
     // remember to add the in progress group :)
     ls |> List.fold folder ([], []) |> (fun (acc, cur) -> cur :: acc |> List.rev)
 
-let parse2 (s: string) =
-    let lines = s.Trim().Split "\n" |> Seq.toList
+let process_nums2 ns =
+    ns
+    // split each line into chars
+    |> List.map (fun s -> s |> Seq.toList)
+    // add spaces to the end if required to get even rows
+    |> make_even
+    // transpose columns to rows
+    |> List.transpose
+    // join the chars to make values
+    |> List.map (fun cs -> System.String.Join("", cs).Trim())
+    // group the numbers splitting on the empty string
+    |> split_empty
 
-    match lines |> List.rev with
-    | [] -> failwith "wtf"
-    | symbols :: numbers ->
-        let syms =
-            symbols.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries) |> Seq.toList
-
-        let nums =
-            numbers
-            // now that we've popped the symbols, rev to the right order again
-            |> List.rev
-            // split into chars
-            |> List.map (fun s -> s |> Seq.toList)
-            // add spaces to the end to get even rows
-            |> make_even
-            // transpose columns to rows
-            |> List.transpose
-            // join the chars to make values
-            |> List.map (fun cs -> System.String.Join("", cs).Trim())
-            // group the numbers splitting on the empty string
-            |> split_empty
-
-        List.zip syms nums
-
-let part2 (s: string) =
-    s |> parse2 |> List.map (fun (op, nums) -> apply_op op nums) |> List.sum
+let part2 (s: string) = s |> parse process_nums2 |> calc
