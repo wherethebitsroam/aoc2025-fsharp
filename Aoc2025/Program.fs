@@ -1,19 +1,12 @@
 open System.IO
 
-let data = File.ReadAllText "../../day05.txt"
+let data = File.ReadAllText "../../day06.txt"
 
 // let data =
-//     """3-5
-//     10-14
-//     16-20
-//     12-18
+//     """123 328  51 64
+//  45 64  387 23
+//   6 98  215 314
+//     *   +   *   +
+//     """
 
-//     1
-//     5
-//     8
-//     11
-//     17
-//     32
-// """
-
-data |> Day05.part2 |> printfn "%A"
+data |> Day06.part2 |> printfn "%A"
