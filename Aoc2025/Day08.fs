@@ -1,6 +1,14 @@
 module Day08
 
 open System
+open System.Diagnostics
+
+let measureTime label f input =
+    let stopwatch = Stopwatch.StartNew()
+    let result = f input
+    stopwatch.Stop()
+    printfn "%s: %f ms" label stopwatch.Elapsed.TotalMilliseconds
+    result
 
 type Point = { x: int64; y: int64; z: int64 }
 
@@ -25,14 +33,14 @@ let parse (s: string) =
 
 // create all unique pairs from the list of points
 let combinations ls =
-    let rec com acc ls =
-        match ls with
-        | x :: rest ->
-            let blah = rest |> List.map (fun l -> x, l)
-            com (List.append acc blah) rest
-        | [] -> acc
+    let a = ls |> Array.ofList
 
-    com [] ls
+    seq {
+        for i in 0 .. (Array.length a - 2) do
+            for j in (i + 1) .. (Array.length a - 1) do
+                yield a[i], a[j]
+    }
+    |> List.ofSeq
 
 let find (x: Point) (sets: Set<Set<Point>>) =
     sets |> Set.toList |> List.find (fun s -> s |> Set.contains x)
@@ -44,9 +52,9 @@ let addConnection (a: Point, b: Point) (sets: Set<Set<Point>>) =
 
 let sortedByDist junctions =
     junctions
-    |> combinations
-    |> List.map (fun (a, b) -> (a, b), Point.sld a b)
-    |> List.sortBy (fun (_, sld) -> sld)
+    |> measureTime "combinations" combinations
+    |> measureTime "sld" List.map (fun (a, b) -> (a, b), Point.sld a b)
+    |> measureTime "sort" List.sortBy (fun (_, sld) -> sld)
     |> List.map fst
 
 let junctionsSet junctions =
@@ -61,7 +69,7 @@ let part1 (s: string) =
     |> sortedByDist
     |> List.take 1000
     // combine sets based on the connections
-    |> List.fold (fun sets conn -> sets |> addConnection conn) sets
+    |> measureTime "connect" List.fold (fun sets conn -> sets |> addConnection conn) sets
     |> Set.toList
     |> List.map Set.count
     |> List.sortDescending
@@ -80,4 +88,8 @@ let rec group (sets: Set<Set<Point>>) (ls: list<Point * Point>) =
 let part2 (s: string) =
     let junctions = s |> parse
     let sets = junctions |> junctionsSet
-    junctions |> sortedByDist |> group sets |> (fun (p1, p2) -> p1.x * p2.x)
+
+    junctions
+    |> sortedByDist
+    |> measureTime "connect" group sets
+    |> (fun (p1, p2) -> p1.x * p2.x)
