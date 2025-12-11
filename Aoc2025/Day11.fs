@@ -17,41 +17,46 @@ module Parser =
         | Failure(error, _, _) -> failwith error
 
 let follow (m: Map<string, list<string>>) (src: string) (dst: string) =
-    let rec follow' acc paths =
-        printfn "%A %A" (List.length acc) (List.length paths)
+    let rec follow' seen curr =
 
-        match paths with
-        | [] -> acc
-        | paths ->
-            let nexts =
-                paths
-                |> List.collect (fun path ->
-                    let curr = List.head path
+        match m |> Map.tryFind curr with
+        | None -> seen |> Map.add curr 0, 0
+        | Some nexts ->
+            let seen, count =
+                nexts
+                |> List.fold
+                    (fun (seen, count) next ->
+                        let seen, x =
+                            match seen |> Map.tryFind next with
+                            | Some x -> seen, x
+                            | None -> follow' seen next
 
-                    if curr = "out" then
-                        []
-                    else
-                        let nextDevices =
-                            match m |> Map.tryFind curr with
-                            | Some x -> x
-                            | None -> failwithf $"Not found `{curr}`"
+                        seen, count + x)
+                    (seen, 0)
 
-                        nextDevices |> List.map (fun next -> next :: path))
+            // insert into the map
+            seen |> Map.add curr count, count
 
-            let complete, rest = nexts |> List.partition (fun path -> List.head path = dst)
-
-            follow' (List.append acc complete) rest
-
-    follow' [] [ [ src ] ]
+    follow' ([ (dst, 1) ] |> Map.ofList) src
 
 let part1 (s: string) =
     let m = s |> Parser.parse |> Map.ofList
-    follow m "you" "out" |> List.length
+    follow m "you" "out"
 
 let part2 (s: string) =
     let m = s |> Parser.parse |> Map.ofList
 
-    follow m "fft" "dac"
-// |> List.filter (fun path -> path |> List.contains "dac")
-// |> List.filter (fun path -> path |> List.contains "fft")
-// |> List.length
+    let svr_dac = follow m "svr" "dac" |> snd |> int64
+    printfn "svr_dac: %d" svr_dac
+    let svr_fft = follow m "svr" "fft" |> snd |> int64
+    printfn "svr_fft: %d" svr_fft
+    let fft_dac = follow m "fft" "dac" |> snd |> int64
+    printfn "fft_dac: %d" fft_dac
+    let fft_out = follow m "fft" "out" |> snd |> int64
+    printfn "fft_out: %d" fft_out
+    let dac_fft = follow m "dac" "fft" |> snd |> int64
+    printfn "dac_fft: %d" dac_fft
+    let dac_out = follow m "dac" "out" |> snd |> int64
+    printfn "dac_out: %d" dac_out
+
+    svr_dac * dac_fft * fft_out + svr_fft * fft_dac * dac_out
