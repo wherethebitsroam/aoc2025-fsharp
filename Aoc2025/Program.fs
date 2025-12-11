@@ -1,6 +1,6 @@
 open System.IO
 
-let data = File.ReadAllText "../../day09.txt"
-// let data = File.ReadAllText "../../day09-example.txt"
+let data = File.ReadAllText "../../day11.txt"
+// let data = File.ReadAllText "../../day11-example2.txt"
 
-data |> Day09.part2 |> printfn "%A"
+data |> Day11.part2 |> printfn "%A"
